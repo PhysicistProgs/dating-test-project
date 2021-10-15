@@ -3,13 +3,12 @@ from api_app.models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
-    sex = serializers.ChoiceField(choices=User.SEX_CHOICES)
     password = serializers.CharField(write_only=True)
 
     class Meta:
         fields = ['email', 'first_name',
                   'last_name', 'sex',
-                  'avatar', 'password']
+                  'avatar', 'password',]
         model = User
 
     def create(self, validated_data):
