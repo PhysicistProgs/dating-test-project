@@ -4,10 +4,31 @@ from PIL import Image, ImageDraw, ImageFont
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
+from django.utils.deconstruct import deconstructible
 from django.utils.translation import ugettext as _
 
 
+@deconstructible
+class UploadToAvatarDir:
+    """
+    Класс необходим для передачи пути файла в upload_to аттрибута avatar
+    """
+    def __init__(self, sub_path):
+        self.sub_path = sub_path
+
+    def __call__(self, instance, filename):
+        ext = filename.split('.')[-1]
+        filename = f'{instance.email}.{ext}'
+        return os.path.join(self.sub_path, filename)
+
+upload_dir = UploadToAvatarDir('avatar/')
+
+
 class UserManager(BaseUserManager):
+    """
+    Почти полностью скопированный и переписанный UserManager из класса AbstractUser
+    для реализации аутенификации через email.
+    """
     use_in_migrations = True
 
     def _create_user(self, email, password, **extra_fields):
@@ -34,20 +55,6 @@ class UserManager(BaseUserManager):
 
 class User(AbstractBaseUser, PermissionsMixin):
 
-    @staticmethod
-    def path_and_rename(path):
-        """
-        Возвращает функцию, которая в момент вызова изменит
-        имя файла, оставив расширение тем же. Имя файла случайное на основе uuid.
-        Используется для аргумента upload_to поля avatar.
-        """
-        def wrapper(instance, filename):
-            ext = filename.split('.')[-1]
-            filename = f'avatar{str(uuid4())[:8]}.{ext}'
-            return os.path.join(path, filename)
-
-        return wrapper
-
     MALE = 'M'
     FEMALE = 'F'
     SEX_CHOICES = (
@@ -58,8 +65,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(_('first name'), max_length=30)
     last_name = models.CharField(_('last name'), max_length=30)
     sex = models.CharField(_('sex'), choices=SEX_CHOICES, max_length=30)
-    avatar = models.ImageField(upload_to=path_and_rename.__func__('avatar'))
+    avatar = models.ImageField(upload_to=upload_dir)
     is_active = models.BooleanField(_('active'), default=True)
+    friends = models.ManyToManyField('self', symmetrical=False)
 
     REQUIRED_FIELDS = []
     USERNAME_FIELD = 'email'
@@ -87,4 +95,5 @@ class User(AbstractBaseUser, PermissionsMixin):
         super().save(*args, **kwargs)
         path = self.avatar.path
         self.watermark_image(path)
+
 
