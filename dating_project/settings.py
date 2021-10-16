@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'django_filters',
     'api_app'
 ]
 
@@ -130,4 +131,8 @@ EMAIL_USE_TLS = True
 EMAIL_ADMIN = 'asdsfasdfzsdf@maildrop.cc'
 
 
-
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKEND': (
+        'django_filters.rest_framework.DjangoFilterBackend',
+    )
+}
