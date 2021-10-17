@@ -2,3 +2,6 @@ django
 djangorestframework
 pillow
 django-filter
+django-mptt
+requests
+bs4
