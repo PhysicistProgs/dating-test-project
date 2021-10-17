@@ -1,6 +1,4 @@
-from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
-from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .filters import FilterUser
@@ -20,11 +18,15 @@ class UserListView(generics.ListAPIView):
     """
     Эндпоинт списка пользователей.
     Поддерживает фильтрацию по фамилии(last_name), имени(first_name), и полу(sex).
+    Исключает из отображения аутентифиированного пользователя
     """
     serializer_class = UserSerializer
-    queryset = User.objects.all()
     filter_backends = (filters.DjangoFilterBackend,)
     filterset_class = FilterUser
+
+    def get_queryset(self):
+        if self.request.user.is_authenticated:
+            return User.objects.exclude(pk=self.request.user.pk)
 
 
 class UserMatchView(APIView):
@@ -38,4 +40,3 @@ class UserMatchView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-

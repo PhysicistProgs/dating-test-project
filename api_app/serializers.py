@@ -6,18 +6,23 @@ from api_app.models import User
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    distance = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
-        fields = ['email', 'first_name',
-                  'last_name', 'sex',
-                  'avatar', 'password', 'friends', 'pk']
         model = User
+        fields = ['email', 'first_name', 'last_name', 'sex', 'avatar',
+                  'password', 'liked_persons', 'pk',  'distance', 'latitude', 'longitude', ]
+        read_only_fields = ['latitude', 'longitude']
 
     def create(self, validated_data):
         user = super(UserSerializer, self).create(validated_data)
         user.set_password(validated_data['password'])
         user.save()
         return user
+
+    def get_distance(self, obj):
+        user = self.context['request'].user
+        return obj.count_distance(user)
 
 
 class UserMatchSerializer(serializers.ModelSerializer):
@@ -26,7 +31,7 @@ class UserMatchSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name', 'sex', 'friends', 'friend', 'friend_mail']
+        fields = ['email', 'first_name', 'last_name', 'sex', 'liked_persons', 'friend', 'friend_mail']
 
     def send_mails(self, sender, receiver):
         """
@@ -42,8 +47,8 @@ class UserMatchSerializer(serializers.ModelSerializer):
         new_friend_pk = validated_data.pop('friend')
         new_friend = User.objects.get(pk=new_friend_pk)
         if new_friend.pk != instance.pk:  # проверяем, что пользователь не в списке лайкнутых
-            instance.friends.add(new_friend)
-            if instance in new_friend.friends.all():  # проверка на матч
+            instance.liked_persons.add(new_friend)
+            if instance in new_friend.liked_persons.all():  # проверка на матч
                 self.context['match'] = True
                 self.send_mails(instance, new_friend)
         return instance
